@@ -1,22 +1,58 @@
 const express = require("express");
+const expressGraphQL = require("express-graphql");
+const {
+  GraphQLSchema,
+  GraphQLObjectType,
+  GraphQLString,
+  GraphQLList,
+  GraphQLInt, //type: integer
+  GraphQLNonNull //You can never return 'null' for this type
+} = require("graphql");
 const app = express();
 const port = 5000;
-const expressGraphQL = require("express-graphql");
-const { GraphQLSchema, GraphQLObjectType, GraphQLString } = require("graphql");
 
-//build a GraphQL type schema to define our query section
-const schema = new GraphQLSchema({
-  query: new GraphQLObjectType({
-    //query section defines all the use cases of our queries
-    name: "Hello_World", //"Hello World" object has a 'message' field, which will return a 'string'
-    fields: () => ({
-      //Inside objects, we have 'fields' to query in order to retrieve data
-      message: {
-        type: GraphQLString, //tell what types the fields are
-        resolve: () => "Hello_World" //information returned by the query field
-      }
-    })
+const authors = [
+  { id: 1, name: "J. K. Rowling" },
+  { id: 2, name: "J. R. R. Tolkien" },
+  { id: 3, name: "Brent Weeks" }
+];
+
+const books = [
+  { id: 1, name: "Harry Potter and the Chamber of Secrets", authorId: 1 },
+  { id: 2, name: "Harry Potter and the Prisoner of Azkaban", authorId: 1 },
+  { id: 3, name: "Harry Potter and the Goblet of Fire", authorId: 1 },
+  { id: 4, name: "The Fellowship of the Ring", authorId: 2 },
+  { id: 5, name: "The Two Towers", authorId: 2 },
+  { id: 6, name: "The Return of the King", authorId: 2 },
+  { id: 7, name: "The Way of Shadows", authorId: 3 },
+  { id: 8, name: "Beyond the Shadows", authorId: 3 }
+];
+
+const BookType = new GraphQLObjectType({
+  //BookType (our customised type) defined here
+  name: "Book",
+  description: "A book written by an author",
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLInt) }, //type 'integer', which can't return 'null'
+    name: { type: GraphQLNonNull(GraphQLString) },
+    authorId: { type: GraphQLNonNull(GraphQLInt) }
   })
+});
+
+const RootQueryType = new GraphQLObjectType({
+  name: "Query",
+  description: "Root Query",
+  fields: () => ({
+    books: {
+      type: new GraphQLList(BookType), //BookType: Our customised type (which is a 'list')
+      description: "List of Books",
+      resolve: () => books
+    }
+  }) //closure? wrapped {} in () so that we can just return this object
+});
+
+const schema = new GraphQLSchema({
+  query: RootQueryType
 });
 
 app.use(
