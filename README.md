@@ -24,6 +24,8 @@
 
 ---
 
+### Code Snippets
+
 - **Initial Query Setup - Hello World**
 
 ```javascript
@@ -45,8 +47,9 @@ const schema = new GraphQLSchema({
 });
 ```
 
-- **Query the Name of the Book**
-  (Can also query the id and authorId on books)
+![](./docs/1_HelloWorld.JPG)
+
+- **Query Books (the Name of the Books)** (Can also query the id and authorId on books)
 
 1. Code in server.js
 
@@ -90,11 +93,63 @@ const schema = new GraphQLSchema({
 }
 ```
 
-```javascript
-```
+![](./docs/2_BooksName.JPG)
+
+- **Query Authors**
 
 ```javascript
+const AuthorType = new GraphQLObjectType({
+  //AuthorType (our customised type) defined here
+  name: "Author",
+  description: "An author of a book",
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLInt) },
+    name: { type: GraphQLNonNull(GraphQLString) },
+    books: {
+      type: new GraphQLList(BookType),
+      resolve: author => {
+        // 1st arg in resolve is the parent property ('author')
+        return books.filter(book => book.authorId === author.id); //'filter': an author can have many books
+      }
+    }
+  })
+});
+
+const RootQueryType = new GraphQLObjectType({
+  name: "Query",
+  description: "Root Query",
+  fields: () => ({
+    authors: {
+      type: new GraphQLList(AuthorType), //AuthorType: Our customised type (which is a 'list')
+      description: "List of Authors",
+      resolve: () => authors
+    }
+  })
+});
 ```
+
+![](./docs/3_Authors.JPG)
+
+- **Query A Single Book**
+
+```javascript
+const RootQueryType = new GraphQLObjectType({
+  name: "Query",
+  description: "Root Query",
+  fields: () => ({
+    book: {
+      type: BookType,
+      description: "A Single Book",
+      args: {
+        id: { type: GraphQLInt }
+      },
+      resolve: (parent, args) => books.find(book => book.id === args.id) //'find': a book only has 1 id
+    }
+  })
+});
+```
+
+![](./docs/4_SingleBook.JPG)
 
 ```javascript
 ```

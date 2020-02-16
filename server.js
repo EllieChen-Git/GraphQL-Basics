@@ -33,13 +33,15 @@ const AuthorType = new GraphQLObjectType({
   name: "Author",
   description: "An author of a book",
   fields: () => ({
+    // Use a function here so that everything can be defined before they start to get called
+    // AuthorType refers to BookType and vice versa
     id: { type: GraphQLNonNull(GraphQLInt) },
     name: { type: GraphQLNonNull(GraphQLString) },
     books: {
       type: new GraphQLList(BookType),
       resolve: author => {
-        // 'author' is the parent property
-        return books.filter(book => book.authorId === author.id);
+        // 1st arg in resolve is the parent property ('author')
+        return books.filter(book => book.authorId === author.id); //'filter': an author can have many books
       }
     }
   })
@@ -56,8 +58,8 @@ const BookType = new GraphQLObjectType({
     author: {
       type: AuthorType, //Another customised type 'Author Type'
       resolve: book => {
-        // 'book' is the parent property
-        return authors.find(author => author.id === book.authorId);
+        // 1st arg in resolve is the parent property ('book')
+        return authors.find(author => author.id === book.authorId); //'find': a book only has 1 author
       }
     }
   })
@@ -72,10 +74,26 @@ const RootQueryType = new GraphQLObjectType({
       description: "List of Books",
       resolve: () => books
     },
+    book: {
+      type: BookType,
+      description: "A Single Book",
+      args: {
+        id: { type: GraphQLInt }
+      },
+      resolve: (parent, args) => books.find(book => book.id === args.id) //'find': a book only has 1 id
+    },
     authors: {
       type: new GraphQLList(AuthorType), //AuthorType: Our customised type (which is a 'list')
       description: "List of Authors",
       resolve: () => authors
+    },
+    author: {
+      type: AuthorType,
+      description: "A Single Author",
+      args: {
+        id: { type: GraphQLInt }
+      },
+      resolve: (parent, args) => authors.find(author => author.id === args.id)
     }
   }) //closure? wrapped {} in () so that we can just return this object
 });
