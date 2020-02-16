@@ -1,4 +1,9 @@
+//Set up Express
 const express = require("express");
+const app = express();
+const port = 5000;
+
+//Set up Express GraphQL & GraphQL
 const expressGraphQL = require("express-graphql");
 const {
   GraphQLSchema,
@@ -6,39 +11,23 @@ const {
   GraphQLString,
   GraphQLList,
   GraphQLInt, //type: integer
-  GraphQLNonNull //You can never return 'null' for this type
+  GraphQLNonNull //Can't return 'null' for this type
 } = require("graphql");
-const app = express();
-const port = 5000;
 
-const authors = [
-  { id: 1, name: "J. K. Rowling" },
-  { id: 2, name: "J. R. R. Tolkien" },
-  { id: 3, name: "Brent Weeks" }
-];
+//Set up Dataset in a separate file
+const { authors, books } = require("./dataset");
 
-const books = [
-  { id: 1, name: "Harry Potter and the Chamber of Secrets", authorId: 1 },
-  { id: 2, name: "Harry Potter and the Prisoner of Azkaban", authorId: 1 },
-  { id: 3, name: "Harry Potter and the Goblet of Fire", authorId: 1 },
-  { id: 4, name: "The Fellowship of the Ring", authorId: 2 },
-  { id: 5, name: "The Two Towers", authorId: 2 },
-  { id: 6, name: "The Return of the King", authorId: 2 },
-  { id: 7, name: "The Way of Shadows", authorId: 3 },
-  { id: 8, name: "Beyond the Shadows", authorId: 3 }
-];
-
+//Create a customised type - AuthorType
 const AuthorType = new GraphQLObjectType({
-  //AuthorType (our customised type) defined here
   name: "Author",
   description: "An author of a book",
   fields: () => ({
-    // Use a function here so that everything can be defined before they start to get called
-    // AuthorType refers to BookType and vice versa
-    id: { type: GraphQLNonNull(GraphQLInt) },
+    // fields: Use a function here so that everything can be defined before they are called
+    // Reason: AuthorType refers to BookType and vice versa
+    id: { type: GraphQLNonNull(GraphQLInt) }, //type 'integer', which can't return 'null'
     name: { type: GraphQLNonNull(GraphQLString) },
     books: {
-      type: new GraphQLList(BookType),
+      type: new GraphQLList(BookType), //Another customised type 'BookType'
       resolve: author => {
         // 1st arg in resolve is the parent property ('author')
         return books.filter(book => book.authorId === author.id); //'filter': an author can have many books
@@ -47,49 +36,49 @@ const AuthorType = new GraphQLObjectType({
   })
 });
 
+//Create a customised type - BookType
 const BookType = new GraphQLObjectType({
-  //BookType (our customised type) defined here
   name: "Book",
   description: "A book written by an author",
   fields: () => ({
-    id: { type: GraphQLNonNull(GraphQLInt) }, //type 'integer', which can't return 'null'
+    id: { type: GraphQLNonNull(GraphQLInt) },
     name: { type: GraphQLNonNull(GraphQLString) },
     authorId: { type: GraphQLNonNull(GraphQLInt) },
     author: {
-      type: AuthorType, //Another customised type 'Author Type'
+      type: AuthorType,
       resolve: book => {
-        // 1st arg in resolve is the parent property ('book')
         return authors.find(author => author.id === book.authorId); //'find': a book only has 1 author
       }
     }
   })
 });
 
+//Create Root Query Type to define our query fields
 const RootQueryType = new GraphQLObjectType({
   name: "Query",
   description: "Root Query",
   fields: () => ({
     books: {
       type: new GraphQLList(BookType), //BookType: Our customised type (which is a 'list')
-      description: "List of Books",
+      description: "List of books",
       resolve: () => books
     },
     book: {
       type: BookType,
-      description: "A Single Book",
+      description: "A single book",
       args: {
         id: { type: GraphQLInt }
       },
-      resolve: (parent, args) => books.find(book => book.id === args.id) //'find': a book only has 1 id
+      resolve: (parent, args) => books.find(book => book.id === args.id)
     },
     authors: {
       type: new GraphQLList(AuthorType), //AuthorType: Our customised type (which is a 'list')
-      description: "List of Authors",
+      description: "List of authors",
       resolve: () => authors
     },
     author: {
       type: AuthorType,
-      description: "A Single Author",
+      description: "A single author",
       args: {
         id: { type: GraphQLInt }
       },
@@ -98,19 +87,64 @@ const RootQueryType = new GraphQLObjectType({
   }) //closure? wrapped {} in () so that we can just return this object
 });
 
-const schema = new GraphQLSchema({
-  query: RootQueryType
+//Create Root Mutation Type so that we can modify the data (e.g. add books/authors)
+const RootMutationType = new GraphQLObjectType({
+  name: "Mutation",
+  description: "Root mutation",
+  fields: () => ({
+    addBook: {
+      type: BookType,
+      description: "Add a book",
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        authorId: { type: GraphQLNonNull(GraphQLInt) }
+      },
+      resolve: (parent, args) => {
+        //Create a new book
+        const book = {
+          id: books.length + 1,
+          name: args.name,
+          authorId: args.authorId
+        };
+        books.push(book); //Add new book into books array
+        return book;
+      }
+    },
+    addAuthor: {
+      type: AuthorType,
+      description: "Add an author",
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) }
+      },
+      resolve: (parent, args) => {
+        // 2nd arg in resolve is arguments
+        const author = {
+          id: authors.length + 1,
+          name: args.name
+        };
+        authors.push(author);
+        return author;
+      }
+    }
+  })
 });
 
+//Create a schema needed for GraphQL
+const schema = new GraphQLSchema({
+  query: RootQueryType,
+  mutation: RootMutationType
+});
+
+//Set up route, schema & graphiql
 app.use(
   "/graphql",
   expressGraphQL({
     schema: schema,
-    graphiql: true //If true, presents GraphiQL when the GraphQL endpoint is loaded in a browser. Recommend to set graphiql to true when your app is in development
+    graphiql: true //If true, presents GraphiQL when the GraphQL endpoint is loaded in a browser. Recommend setting graphiql to true when your app is in development
   })
 );
 
-//Port
+//Set up port
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });

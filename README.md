@@ -8,23 +8,23 @@
 
 ---
 
-### Dependency
+## Dependencies
 
-**nodemon**
+**1. nodemon**
 
-**express**
+**2. express**
 
-**express-graphql**: Create a GraphQL HTTP server with any HTTP web framework that supports connect styled middleware, including Connect itself, Express and Restify.
+**3. express-graphql**: Create a GraphQL HTTP server with any HTTP web framework that supports connect styled middleware, including Connect itself, Express and Restify.
 
 - https://www.npmjs.com/package/express-graphql
 
-**Graphql.js**: The JavaScript reference implementation for GraphQL, a query language for APIs created by Facebook.
+**4. Graphql.js**: The JavaScript reference implementation for GraphQL, a query language for APIs created by Facebook.
 
 - https://www.npmjs.com/package/graphql
 
 ---
 
-### Code Snippets
+## Code Snippets
 
 - **Initial Query Setup - Hello World**
 
@@ -83,7 +83,7 @@ const schema = new GraphQLSchema({
 });
 ```
 
-2. Code to query GraphQL in browswer (http://localhost:5000/graphql)
+2. Code to query GraphQL in browser (http://localhost:5000/graphql)
 
 ```javascript
 {
@@ -151,14 +151,37 @@ const RootQueryType = new GraphQLObjectType({
 
 ![](./docs/4_SingleBook.JPG)
 
-```javascript
-```
+- **Create Root Mutation Type (Add a Book)**
 
 ```javascript
+const schema = new GraphQLSchema({
+  mutation: RootMutationType
+});
+
+const RootMutationType = new GraphQLObjectType({
+  name: "Mutation",
+  description: "Root mutation",
+  fields: () => ({
+    addBook: {
+      type: BookType,
+      description: "Add a book",
+      args: {
+        name: { type: GraphQLNonNull(GraphQLString) },
+        authorId: { type: GraphQLNonNull(GraphQLInt) }
+      },
+      resolve: (parent, args) => {
+        //Create a new book
+        const book = {
+          id: books.length + 1,
+          name: args.name,
+          authorId: args.authorId
+        };
+        books.push(book); //Add new book into books array
+        return book;
+      }
+    }
+  })
+});
 ```
 
-```javascript
-```
-
-```javascript
-```
+![](./docs/5_Mutation.JPG)
