@@ -28,6 +28,23 @@ const books = [
   { id: 8, name: "Beyond the Shadows", authorId: 3 }
 ];
 
+const AuthorType = new GraphQLObjectType({
+  //AuthorType (our customised type) defined here
+  name: "Author",
+  description: "An author of a book",
+  fields: () => ({
+    id: { type: GraphQLNonNull(GraphQLInt) },
+    name: { type: GraphQLNonNull(GraphQLString) },
+    books: {
+      type: new GraphQLList(BookType),
+      resolve: author => {
+        // 'author' is the parent property
+        return books.filter(book => book.authorId === author.id);
+      }
+    }
+  })
+});
+
 const BookType = new GraphQLObjectType({
   //BookType (our customised type) defined here
   name: "Book",
@@ -35,7 +52,14 @@ const BookType = new GraphQLObjectType({
   fields: () => ({
     id: { type: GraphQLNonNull(GraphQLInt) }, //type 'integer', which can't return 'null'
     name: { type: GraphQLNonNull(GraphQLString) },
-    authorId: { type: GraphQLNonNull(GraphQLInt) }
+    authorId: { type: GraphQLNonNull(GraphQLInt) },
+    author: {
+      type: AuthorType, //Another customised type 'Author Type'
+      resolve: book => {
+        // 'book' is the parent property
+        return authors.find(author => author.id === book.authorId);
+      }
+    }
   })
 });
 
@@ -47,6 +71,11 @@ const RootQueryType = new GraphQLObjectType({
       type: new GraphQLList(BookType), //BookType: Our customised type (which is a 'list')
       description: "List of Books",
       resolve: () => books
+    },
+    authors: {
+      type: new GraphQLList(AuthorType), //AuthorType: Our customised type (which is a 'list')
+      description: "List of Authors",
+      resolve: () => authors
     }
   }) //closure? wrapped {} in () so that we can just return this object
 });
